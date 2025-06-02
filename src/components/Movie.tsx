@@ -8,6 +8,7 @@ export default function Movie() {
   const location = useLocation();
   const [movieTitle, setMovieTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [tagline, setTagline] = useState("");
   const [lockedInputs, setLockedInputs] = useState<UIElement[]>([]);
 
   const agent = useAgent({
@@ -18,6 +19,9 @@ export default function Movie() {
       if (state.description) {
         setDescription(state.description);
       }
+      if (state.tagline) {
+        setTagline(state.tagline);
+      }
       setLockedInputs(state.lockedInputs);
     }
   });
@@ -25,10 +29,10 @@ export default function Movie() {
   // Trigger regeneration when component mounts with a title from navigation
   useEffect(() => {
     const titleFromNavigation = location.state?.title;
-    if (titleFromNavigation && agent.isReady) {
+    if (titleFromNavigation && agent) {
       agent.call("regenerate", [titleFromNavigation]);
     }
-  }, [agent.isReady, location.state?.title]);
+  }, [agent, location.state?.title]);
 
   const lockInput = async (input: UIElement) => {
     await agent.call("lock", [input]);
@@ -40,6 +44,15 @@ export default function Movie() {
   
   const submitTitle = async (form: FormData) => {
     const movieTitle = form.get("movie_title");
+    await agent.call("regenerate", [movieTitle]);
+  }
+
+  const saveTagline = async (form: FormData) => {
+    const taglineText = form.get("tagline");
+    await agent.call("setTagline", [taglineText]);
+  }
+
+  const regenerateAll = async () => {
     await agent.call("regenerate", [movieTitle]);
   }
 
@@ -77,36 +90,94 @@ export default function Movie() {
         </div>
 
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 shadow-2xl">
-          {/* Title Section */}
+          {/* Header with Title and Regenerate Button */}
+          <div className="flex items-start justify-between mb-8">
+            <div className="flex-1">
+              <div className="flex items-center gap-4 mb-4">
+                <h2 className="text-3xl font-bold text-white">{movieTitle || "Untitled Movie"}</h2>
+                <LockIcon 
+                  locked={isLocked("title")} 
+                  onClick={() => isLocked("title") ? unlockInput("title") : lockInput("title")}
+                />
+              </div>
+              
+              {!isLocked("title") && (
+                <form action={submitTitle}>
+                  <div className="flex gap-4 items-end">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-blue-100 mb-2">
+                        Movie Title
+                      </label>
+                      <input 
+                        name="movie_title" 
+                        type="text" 
+                        defaultValue={movieTitle}
+                        className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                        placeholder="Enter movie title..."
+                      />
+                    </div>
+                    <button 
+                      type="submit"
+                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105"
+                    >
+                      Update Title
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+            
+            <button 
+              onClick={regenerateAll}
+              className="ml-6 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Regenerate
+            </button>
+          </div>
+
+          {/* Tagline Section */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-3xl font-bold text-white">{movieTitle || "Untitled Movie"}</h2>
+              <h3 className="text-xl font-semibold text-white">Tagline</h3>
               <LockIcon 
-                locked={isLocked("title")} 
-                onClick={() => isLocked("title") ? unlockInput("title") : lockInput("title")}
+                locked={isLocked("tagline")} 
+                onClick={() => isLocked("tagline") ? unlockInput("tagline") : lockInput("tagline")}
               />
             </div>
             
-            {!isLocked("title") && (
-              <form action={submitTitle}>
+            {isLocked("tagline") ? (
+              <div className="bg-white/5 rounded-lg p-4 text-blue-100 min-h-[60px] flex items-center">
+                <div className="text-lg italic">
+                  {tagline ? `"${tagline}"` : "No tagline generated yet..."}
+                </div>
+              </div>
+            ) : (
+              <form action={saveTagline}>
                 <div className="flex gap-4 items-end">
                   <div className="flex-1">
                     <label className="block text-sm font-medium text-blue-100 mb-2">
-                      Movie Title
+                      Edit Tagline
                     </label>
                     <input 
-                      name="movie_title" 
+                      name="tagline" 
                       type="text" 
-                      defaultValue={movieTitle}
-                      className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                      placeholder="Enter movie title..."
+                      defaultValue={tagline}
+                      className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent"
+                      placeholder="Enter tagline..."
                     />
                   </div>
                   <button 
                     type="submit"
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105"
+                    className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center gap-2"
+                    title="Save tagline"
                   >
-                    Regenerate
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Save
                   </button>
                 </div>
               </form>
@@ -127,16 +198,6 @@ export default function Movie() {
               {description || "No description generated yet..."}
             </div>
             
-            {!isLocked("description") && description && (
-              <div className="mt-4">
-                <button 
-                  onClick={() => agent.call("regenerate", [movieTitle])}
-                  className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200"
-                >
-                  Regenerate Description
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>

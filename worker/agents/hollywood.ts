@@ -94,7 +94,7 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
     
     Your job is to use the provided information to create a tagline that can go on billboards.
     
-    Return only the tagline.
+    Return only the tagline. Do not put it in quotes.
     `;
     let info = `<Title>\n${this.state.movieTitle}\n</Title>`;
     if (this.state.description) {
@@ -151,5 +151,13 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
       tagline,
     });
     await this.lock("tagline");
+  }
+
+  @callable()
+  async setTagline(tagline: string) {
+    this.setState({
+      ...this.state,
+      tagline,
+    });
   }
 }
