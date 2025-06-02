@@ -43,6 +43,7 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
       ...this.state,
       movieTitle,
     });
+    this.lock("title");
 
     if (!this.isLocked("description")) {
       const description = await this.generateDescription();

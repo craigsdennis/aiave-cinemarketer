@@ -10,7 +10,7 @@ export default function TitleInput() {
     e.preventDefault();
     if (title.trim()) {
       const slug = generateSlug(title);
-      navigate(`/movie/${slug}`);
+      navigate(`/movie/${slug}`, { state: { title: title.trim() } });
     }
   };
 
