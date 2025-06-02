@@ -49,7 +49,7 @@ export default function Movie() {
 
   const saveTagline = async (form: FormData) => {
     const taglineText = form.get("tagline");
-    await agent.call("setTagline", [taglineText]);
+    await agent.call("updateTagline", [taglineText]);
   }
 
   const regenerateAll = async () => {

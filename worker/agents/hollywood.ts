@@ -16,6 +16,11 @@ export type Review = {
   author: string;
 };
 
+export type CastMember = {
+  character: string;
+  actor: string;
+}
+
 export type HollywoodAgentState = {
   movieTitle: string;
   description?: string;
@@ -24,7 +29,7 @@ export type HollywoodAgentState = {
   tagline?: string;
   director?: string;
   posterUrl?: string;
-  actors: string[];
+  cast: CastMember[];
   reviews: Review[];
   lockedInputs: UIElement[];
 };
@@ -32,7 +37,7 @@ export type HollywoodAgentState = {
 export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
   initialState: HollywoodAgentState = {
     movieTitle: "Unnamed",
-    actors: [],
+    cast: [],
     reviews: [],
     lockedInputs: [],
   };
@@ -145,19 +150,12 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
     await this.lock("description");
   }
 
+  @callable()
   async updateTagline(tagline: string) {
     this.setState({
       ...this.state,
       tagline,
     });
     await this.lock("tagline");
-  }
-
-  @callable()
-  async setTagline(tagline: string) {
-    this.setState({
-      ...this.state,
-      tagline,
-    });
   }
 }
