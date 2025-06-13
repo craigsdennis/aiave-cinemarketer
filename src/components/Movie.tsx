@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { useAgent } from 'agents/react';
-import type {HollywoodAgentState, UIElement} from '../../worker/agents/hollywood';
+import type {HollywoodAgentState, CastMember, UIElement} from '../../worker/agents/hollywood';
 
 export default function Movie() {
   const { slug } = useParams<{ slug: string }>();
@@ -9,6 +9,7 @@ export default function Movie() {
   const [movieTitle, setMovieTitle] = useState("");
   const [description, setDescription] = useState("");
   const [tagline, setTagline] = useState("");
+  const [cast, setCast] = useState<CastMember[]>([]);
   const [lockedInputs, setLockedInputs] = useState<UIElement[]>([]);
 
   const agent = useAgent({
@@ -21,6 +22,9 @@ export default function Movie() {
       }
       if (state.tagline) {
         setTagline(state.tagline);
+      }
+      if (state.cast?.length > 0) {
+        setCast(state.cast);
       }
       setLockedInputs(state.lockedInputs);
     }
@@ -50,6 +54,15 @@ export default function Movie() {
   const saveTagline = async (form: FormData) => {
     const taglineText = form.get("tagline");
     await agent.call("updateTagline", [taglineText]);
+  }
+
+  const addCastMember = async (form: FormData) => {
+    const character = form.get("character");
+    const actor = form.get("actor");
+    if (character && actor) {
+      const newCast = [...cast, { character: character.toString(), actor: actor.toString() }];
+      await agent.call("updateCast", [newCast]);
+    }
   }
 
   const regenerateAll = async () => {
@@ -185,7 +198,7 @@ export default function Movie() {
           </div>
 
           {/* Description Section */}
-          <div>
+          <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-white">Description</h3>
               <LockIcon 
@@ -197,7 +210,86 @@ export default function Movie() {
             <div className="bg-white/5 rounded-lg p-4 text-blue-100 min-h-[100px]">
               {description || "No description generated yet..."}
             </div>
+          </div>
+
+          {/* Cast Section */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-white">Cast</h3>
+              <LockIcon 
+                locked={isLocked("cast")} 
+                onClick={() => isLocked("cast") ? unlockInput("cast") : lockInput("cast")}
+              />
+            </div>
             
+            {isLocked("cast") ? (
+              <div className="bg-white/5 rounded-lg p-4 text-blue-100 min-h-[100px]">
+                {cast.length > 0 ? (
+                  <div className="space-y-2">
+                    {cast.map((member, index) => (
+                      <div key={index} className="text-lg">
+                        <span className="font-semibold">{member.character}:</span> {member.actor}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  "No cast members added yet..."
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {cast.length > 0 && (
+                  <div className="bg-white/5 rounded-lg p-4 text-blue-100 space-y-2">
+                    {cast.map((member, index) => (
+                      <div key={index} className="text-lg">
+                        <span className="font-semibold">{member.character}:</span> {member.actor}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                <form action={addCastMember}>
+                  <div className="bg-white/10 rounded-lg p-4 space-y-4">
+                    <h4 className="text-lg font-medium text-white">Add Cast Member</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-blue-100 mb-2">
+                          Character Name
+                        </label>
+                        <input 
+                          name="character" 
+                          type="text" 
+                          required
+                          className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent"
+                          placeholder="Enter character name..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-blue-100 mb-2">
+                          Actor Name
+                        </label>
+                        <input 
+                          name="actor" 
+                          type="text" 
+                          required
+                          className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent"
+                          placeholder="Enter actor name..."
+                        />
+                      </div>
+                    </div>
+                    <button 
+                      type="submit"
+                      className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      Add Cast Member
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -18,7 +18,7 @@ export default function TitleInput() {
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
       <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 w-full max-w-md border border-white/20 shadow-2xl">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">🎬 Sim Hollywood</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">🎬 CineMarketer ✌️</h1>
           <p className="text-blue-200">Create your movie masterpiece</p>
         </div>
         

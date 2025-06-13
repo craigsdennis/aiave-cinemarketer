@@ -1,12 +1,13 @@
 import { Agent, unstable_callable as callable } from "agents";
 import { stripIndents } from "common-tags";
+import { z } from "zod/v4";
 
-const UI_ELEMENTS = [
+export const UI_ELEMENTS = [
   "title",
   "description",
   "genre",
   "tagline",
-  "actors",
+  "cast",
   "reviews",
 ] as const;
 export type UIElement = (typeof UI_ELEMENTS)[number];
@@ -19,7 +20,7 @@ export type Review = {
 export type CastMember = {
   character: string;
   actor: string;
-}
+};
 
 export type HollywoodAgentState = {
   movieTitle: string;
@@ -58,7 +59,10 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
       const tagline = await this.generateTagline();
       await this.updateTagline(tagline);
     }
-    // Generate actors
+    if (!this.isLocked("cast")) {
+      const cast = await this.generateCast();
+      await this.updateCast(cast);
+    }
     // Generate poster
     // Generate reviews
   }
@@ -73,8 +77,10 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
     Return only the description.
     `;
     let info = `<Title>\n${this.state.movieTitle}\n</Title>`;
-    if (this.state.actors.length > 0) {
-      info += `\n<Starring>\n${this.state.actors.join(", ")}\n</Starring>`;
+    if (this.state.cast.length > 0) {
+      info += `\n<Starring>\n${this.state.cast.map(
+        (m) => m.actor + " as " + m.character
+      )}(", ")}\n</Starring>`;
     }
     if (this.state.tagline) {
       info += `\n<Tagline>\n${this.state.tagline}\n</Tagline>`;
@@ -118,6 +124,50 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
     return results.response;
   }
 
+  async generateCast(): Promise<CastMember[]> {
+    const instructions = stripIndents`You are a Hollywood casting agent.
+    
+    Your job is to create characters based on a brief as well as choose who you think would make the best casting decision.
+
+    The user is going to provide you information about the movie, and you should be as creative as possible in your decisions.
+    `;
+
+    const info = `The movie is titled "${this.state.movieTitle}" and a brief description is as follows:
+    <Description>
+    ${this.state.description}
+    </Description>
+    
+    Feel free to add additional characters and actors if you think it will help at the box office.
+    `;
+
+    const CastSchema = z.array(
+      z.object({
+        character: z
+          .string()
+          .meta({ description: "The name of the character" }),
+        actor: z
+          .string()
+          .meta({ description: "The suggested actor to play this role" }),
+      })
+    );
+
+    const results = await this.env.AI.run(
+      "@cf/meta/llama-4-scout-17b-16e-instruct",
+      {
+        messages: [
+          { role: "system", content: instructions },
+          { role: "user", content: info },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: z.toJSONSchema(CastSchema),
+        },
+      }
+    );
+    console.log(JSON.stringify(results));
+    return results.parsed as CastMember[];
+  }
+
   isLocked(input: UIElement) {
     return this.state.lockedInputs.includes(input);
   }
@@ -158,4 +208,16 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
     });
     await this.lock("tagline");
   }
+
+  @callable()
+  async updateCast(cast: CastMember[]) {
+    this.setState({
+      ...this.state,
+      cast,
+    });
+    await this.lock("cast");
+
+
+  }
+
 }
