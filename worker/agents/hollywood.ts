@@ -150,8 +150,9 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
           .meta({ description: "The suggested actor to play this role" }),
       })
     );
+    console.log("CastSchema", JSON.stringify(z.toJSONSchema(CastSchema)))
 
-    const results = await this.env.AI.run(
+    const {response} = await this.env.AI.run(
       "@cf/meta/llama-4-scout-17b-16e-instruct",
       {
         messages: [
@@ -160,12 +161,18 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
         ],
         response_format: {
           type: "json_schema",
-          json_schema: z.toJSONSchema(CastSchema),
+          json_schema: {
+            type: "object",
+            properties: {
+              cast: z.toJSONSchema(CastSchema)
+            }
+          }
         },
       }
     );
-    console.log(JSON.stringify(results));
-    return results.parsed as CastMember[];
+    console.log(JSON.stringify(response));
+    const parsed = JSON.parse(response);
+    return parsed.cast as CastMember[];
   }
 
   isLocked(input: UIElement) {
