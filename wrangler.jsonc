@@ -23,7 +23,13 @@
       }
     ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["HollywoodAgent"] }]
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["HollywoodAgent"] }],
+  "r2_buckets": [
+    {
+      "bucket_name": "movie-posters",
+      "binding": "MOVIE_POSTERS"
+    }
+  ]
 
   /**
    * Smart Placement

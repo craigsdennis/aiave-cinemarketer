@@ -9,8 +9,10 @@ export default function Movie() {
   const [movieTitle, setMovieTitle] = useState("");
   const [description, setDescription] = useState("");
   const [tagline, setTagline] = useState("");
+  const [posterUrl, setPosterUrl] = useState("");
   const [cast, setCast] = useState<CastMember[]>([]);
   const [lockedInputs, setLockedInputs] = useState<UIElement[]>([]);
+  const [showPosterModal, setShowPosterModal] = useState(false);
 
   const agent = useAgent({
     agent: "hollywood-agent",
@@ -22,6 +24,9 @@ export default function Movie() {
       }
       if (state.tagline) {
         setTagline(state.tagline);
+      }
+      if (state.posterUrl) {
+        setPosterUrl(state.posterUrl);
       }
       if (state.cast?.length > 0) {
         setCast(state.cast);
@@ -202,6 +207,37 @@ export default function Movie() {
             )}
           </div>
 
+          {/* Movie Poster Section */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-white">Movie Poster</h3>
+              <LockIcon 
+                locked={isLocked("posterUrl")} 
+                onClick={() => isLocked("posterUrl") ? unlockInput("posterUrl") : lockInput("posterUrl")}
+              />
+            </div>
+            
+            <div className="bg-white/5 rounded-lg p-4 text-blue-100 min-h-[200px] flex items-center justify-center">
+              {posterUrl ? (
+                <div className="cursor-pointer" onClick={() => setShowPosterModal(true)}>
+                  <img 
+                    src={posterUrl} 
+                    alt={`${movieTitle} poster`}
+                    className="max-w-full max-h-96 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-200"
+                  />
+                </div>
+              ) : (
+                <div className="text-center">
+                  <svg className="w-16 h-16 mx-auto mb-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <div>No poster generated yet...</div>
+                  <div className="text-sm text-blue-300 mt-2">Poster will be generated automatically during regeneration</div>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Description Section */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
@@ -309,6 +345,31 @@ export default function Movie() {
           </div>
         </div>
       </div>
+
+      {/* Poster Modal */}
+      {showPosterModal && posterUrl && (
+        <div 
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setShowPosterModal(false)}
+        >
+          <div className="relative max-w-4xl max-h-full">
+            <button
+              onClick={() => setShowPosterModal(false)}
+              className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors"
+            >
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <img 
+              src={posterUrl} 
+              alt={`${movieTitle} poster`}
+              className="max-w-full max-h-full rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

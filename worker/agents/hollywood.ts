@@ -1,6 +1,6 @@
 import { Agent, unstable_callable as callable } from "agents";
 import { stripIndents } from "common-tags";
-import { z } from "zod/v4";
+import { file, z } from "zod/v4";
 
 export const UI_ELEMENTS = [
   "title",
@@ -9,6 +9,7 @@ export const UI_ELEMENTS = [
   "tagline",
   "cast",
   "reviews",
+  "posterUrl",
 ] as const;
 export type UIElement = (typeof UI_ELEMENTS)[number];
 
@@ -63,7 +64,10 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
       const cast = await this.generateCast();
       await this.updateCast(cast);
     }
-    // Generate poster
+    if (!this.isLocked("posterUrl")) {
+      const posterUrl = await this.generatePoster();
+      await this.updatePosterUrl(posterUrl);
+    }
     // Generate reviews
   }
 
@@ -150,9 +154,8 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
           .meta({ description: "The suggested actor to play this role" }),
       })
     );
-    console.log("CastSchema", JSON.stringify(z.toJSONSchema(CastSchema)))
 
-    const {response} = await this.env.AI.run(
+    const { response } = await this.env.AI.run(
       "@cf/meta/llama-4-scout-17b-16e-instruct",
       {
         messages: [
@@ -164,15 +167,64 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
           json_schema: {
             type: "object",
             properties: {
-              cast: z.toJSONSchema(CastSchema)
-            }
-          }
+              cast: z.toJSONSchema(CastSchema),
+            },
+          },
         },
       }
     );
-    console.log(JSON.stringify(response));
     const parsed = JSON.parse(response);
     return parsed.cast as CastMember[];
+  }
+
+  async generatePosterPrompt() {
+    const instructions = stripIndents`You are a Prompt Engineer.
+    
+    The user is going to provide you information about a movie.
+
+    Your job is to create the perfect Flux Schnell prompt that will generate a poster for their movie.
+
+    Return only the prompt.
+    `;
+
+    let info = `The movie is titled "${this.state.movieTitle}" and a brief description is as follows:
+    <Description>
+    ${this.state.description}
+    </Description>
+    `;
+    if (this.state.cast.length > 0) {
+      info += `\n<Starring>\n${this.state.cast.map(
+        (m) => m.actor + " as " + m.character
+      )}(", ")}\n</Starring>`;
+    }
+    if (this.state.tagline) {
+      info += `\n<Tagline>\n${this.state.tagline}\n</Tagline>`;
+    }
+    const results = await this.env.AI.run(
+      "@cf/meta/llama-4-scout-17b-16e-instruct",
+      {
+        messages: [
+          { role: "system", content: instructions },
+          { role: "user", content: info },
+        ],
+      }
+    );
+    // @ts-expect-error - This is not in the type system correctly :(
+    const prompt = results.response;
+    console.log({prompt});
+    return prompt;
+  }
+
+  async generatePoster() {
+    const prompt = await this.generatePosterPrompt();
+    console.log("Creating poster with prompt", prompt);
+    const response = await this.env.AI.run("@cf/black-forest-labs/flux-1-schnell", {
+      prompt
+    });
+    const imageResponse = await fetch(`data:image/jpeg;charset=utf-8;base64,${response.image}`);
+    const fileName = `${this.state.slug}/${crypto.randomUUID()}.jpg`;
+    await this.env.MOVIE_POSTERS.put(fileName, imageResponse.body);
+    return `/images/posters/${fileName}`;
   }
 
   isLocked(input: UIElement) {
@@ -199,6 +251,16 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
     });
   }
 
+  @callable()
+  async updatePosterUrl(posterUrl: string) {
+    this.setState({
+      ...this.state,
+      posterUrl,
+    });
+    await this.lock("posterUrl");
+  }
+
+  @callable()
   async updateDescription(description: string) {
     this.setState({
       ...this.state,
@@ -223,8 +285,5 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
       cast,
     });
     await this.lock("cast");
-
-
   }
-
 }
