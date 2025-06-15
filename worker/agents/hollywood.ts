@@ -247,7 +247,6 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
     );
     // @ts-expect-error - This is not in the type system correctly :(
     const prompt = results.response;
-    console.log({prompt});
     return prompt;
   }
 
@@ -303,7 +302,7 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
           .number()
           .min(1)
           .max(5)
-          .meta({ description: "The number of stars given" }),
+          .meta({ description: "The number of stars given. Whole numbers only" }),
       })
     );
 
@@ -314,6 +313,7 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
           { role: "system", content: instructions },
           { role: "user", content: info },
         ],
+        max_tokens: 10000,
         response_format: {
           type: "json_schema",
           json_schema: {
@@ -325,6 +325,7 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
         },
       }
     );
+    console.log({response});
     const parsed = JSON.parse(response);
     return parsed.reviews as Review[];
   }
