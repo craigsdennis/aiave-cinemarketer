@@ -12,6 +12,7 @@ export default function Movie() {
   const [posterUrl, setPosterUrl] = useState("");
   const [cast, setCast] = useState<CastMember[]>([]);
   const [lockedInputs, setLockedInputs] = useState<UIElement[]>([]);
+  const [loadingInputs, setLoadingInputs] = useState<UIElement[]>([]);
   const [showPosterModal, setShowPosterModal] = useState(false);
 
   const agent = useAgent({
@@ -32,6 +33,7 @@ export default function Movie() {
         setCast(state.cast);
       }
       setLockedInputs(state.lockedInputs);
+      setLoadingInputs(state.loadingInputs);
     }
   });
 
@@ -80,23 +82,54 @@ export default function Movie() {
   }
 
   const isLocked = (input: UIElement) => lockedInputs.includes(input);
+  const isLoading = (input: UIElement) => loadingInputs.includes(input);
 
-  const LockIcon = ({ locked, onClick }: { locked: boolean; onClick: () => void }) => (
-    <button
-      onClick={onClick}
-      className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-      title={locked ? "Unlock to edit" : "Lock to prevent changes"}
-    >
-      {locked ? (
-        <svg className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+  const LockIcon = ({ input }: { input: UIElement }) => {
+    const locked = isLocked(input);
+    const loading = isLoading(input);
+    
+    return (
+      <button
+        onClick={() => locked ? unlockInput(input) : lockInput(input)}
+        className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+        title={loading ? "Generating..." : locked ? "Unlock to edit" : "Lock to prevent changes"}
+        disabled={loading}
+      >
+        {loading ? (
+          <svg className="w-5 h-5 text-blue-400 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+          </svg>
+        ) : locked ? (
+          <svg className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+          </svg>
+        ) : (
+          <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 015.905-.75 1 1 0 001.937-.5A5.002 5.002 0 0010 2z" />
+          </svg>
+        )}
+      </button>
+    );
+  };
+
+  const FilmReelSpinner = () => (
+    <div className="flex items-center justify-center space-x-2">
+      <div className="animate-spin">
+        <svg className="w-8 h-8 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2"/>
+          <circle cx="8" cy="8" r="1.5"/>
+          <circle cx="16" cy="8" r="1.5"/>
+          <circle cx="8" cy="16" r="1.5"/>
+          <circle cx="16" cy="16" r="1.5"/>
+          <circle cx="12" cy="6" r="1.5"/>
+          <circle cx="18" cy="12" r="1.5"/>
+          <circle cx="12" cy="18" r="1.5"/>
+          <circle cx="6" cy="12" r="1.5"/>
         </svg>
-      ) : (
-        <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 015.905-.75 1 1 0 001.937-.5A5.002 5.002 0 0010 2z" />
-        </svg>
-      )}
-    </button>
+      </div>
+      <span className="text-blue-200 animate-pulse">Generating...</span>
+    </div>
   );
 
   return (
@@ -118,10 +151,7 @@ export default function Movie() {
             <div className="flex-1">
               <div className="flex items-center gap-4 mb-4">
                 <h2 className="text-3xl font-bold text-white">{movieTitle || "Untitled Movie"}</h2>
-                <LockIcon 
-                  locked={isLocked("title")} 
-                  onClick={() => isLocked("title") ? unlockInput("title") : lockInput("title")}
-                />
+                <LockIcon input="title" />
               </div>
               
               {!isLocked("title") && (
@@ -165,10 +195,7 @@ export default function Movie() {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-white">Tagline</h3>
-              <LockIcon 
-                locked={isLocked("tagline")} 
-                onClick={() => isLocked("tagline") ? unlockInput("tagline") : lockInput("tagline")}
-              />
+              <LockIcon input="tagline" />
             </div>
             
             {isLocked("tagline") ? (
@@ -176,6 +203,10 @@ export default function Movie() {
                 <div className="text-lg italic">
                   {tagline ? `"${tagline}"` : "No tagline generated yet..."}
                 </div>
+              </div>
+            ) : isLoading("tagline") ? (
+              <div className="bg-white/5 rounded-lg p-4 text-blue-100 min-h-[60px] flex items-center justify-center">
+                <FilmReelSpinner />
               </div>
             ) : (
               <form action={saveTagline}>
@@ -211,14 +242,13 @@ export default function Movie() {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-white">Movie Poster</h3>
-              <LockIcon 
-                locked={isLocked("posterUrl")} 
-                onClick={() => isLocked("posterUrl") ? unlockInput("posterUrl") : lockInput("posterUrl")}
-              />
+              <LockIcon input="posterUrl" />
             </div>
             
             <div className="bg-white/5 rounded-lg p-4 text-blue-100 min-h-[200px] flex items-center justify-center">
-              {posterUrl ? (
+              {isLoading("posterUrl") ? (
+                <FilmReelSpinner />
+              ) : posterUrl ? (
                 <div className="cursor-pointer" onClick={() => setShowPosterModal(true)}>
                   <img 
                     src={posterUrl} 
@@ -242,14 +272,17 @@ export default function Movie() {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-white">Description</h3>
-              <LockIcon 
-                locked={isLocked("description")} 
-                onClick={() => isLocked("description") ? unlockInput("description") : lockInput("description")}
-              />
+              <LockIcon input="description" />
             </div>
             
             <div className="bg-white/5 rounded-lg p-4 text-blue-100 min-h-[100px]">
-              {description || "No description generated yet..."}
+              {isLoading("description") ? (
+                <div className="flex items-center justify-center h-full">
+                  <FilmReelSpinner />
+                </div>
+              ) : (
+                description || "No description generated yet..."
+              )}
             </div>
           </div>
 
@@ -257,10 +290,7 @@ export default function Movie() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-white">Cast</h3>
-              <LockIcon 
-                locked={isLocked("cast")} 
-                onClick={() => isLocked("cast") ? unlockInput("cast") : lockInput("cast")}
-              />
+              <LockIcon input="cast" />
             </div>
             
             {isLocked("cast") ? (
@@ -276,6 +306,10 @@ export default function Movie() {
                 ) : (
                   "No cast members added yet..."
                 )}
+              </div>
+            ) : isLoading("cast") ? (
+              <div className="bg-white/5 rounded-lg p-4 text-blue-100 min-h-[100px] flex items-center justify-center">
+                <FilmReelSpinner />
               </div>
             ) : (
               <div className="space-y-4">

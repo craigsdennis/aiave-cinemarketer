@@ -34,6 +34,7 @@ export type HollywoodAgentState = {
   cast: CastMember[];
   reviews: Review[];
   lockedInputs: UIElement[];
+  loadingInputs: UIElement[];
 };
 
 export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
@@ -42,6 +43,7 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
     cast: [],
     reviews: [],
     lockedInputs: [],
+    loadingInputs: [],
   };
 
   @callable()
@@ -52,21 +54,40 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
     });
     this.lock("title");
 
+    // Set all unlocked elements to loading at the start
+    if (!this.isLocked("description")) {
+      this.setLoading("description", true);
+    }
+    if (!this.isLocked("tagline")) {
+      this.setLoading("tagline", true);
+    }
+    if (!this.isLocked("cast")) {
+      this.setLoading("cast", true);
+    }
+    if (!this.isLocked("posterUrl")) {
+      this.setLoading("posterUrl", true);
+    }
+
+    // Generate each element and remove from loading when complete
     if (!this.isLocked("description")) {
       const description = await this.generateDescription();
       await this.updateDescription(description);
+      this.setLoading("description", false);
     }
     if (!this.isLocked("tagline")) {
       const tagline = await this.generateTagline();
       await this.updateTagline(tagline);
+      this.setLoading("tagline", false);
     }
     if (!this.isLocked("cast")) {
       const cast = await this.generateCast();
       await this.updateCast(cast);
+      this.setLoading("cast", false);
     }
     if (!this.isLocked("posterUrl")) {
       const posterUrl = await this.generatePoster();
       await this.updatePosterUrl(posterUrl);
+      this.setLoading("posterUrl", false);
     }
     // Generate reviews
   }
@@ -229,6 +250,26 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
 
   isLocked(input: UIElement) {
     return this.state.lockedInputs.includes(input);
+  }
+
+  isLoading(input: UIElement) {
+    return this.state.loadingInputs.includes(input);
+  }
+
+  setLoading(input: UIElement, loading: boolean) {
+    const { loadingInputs } = this.state;
+    if (loading && !loadingInputs.includes(input)) {
+      loadingInputs.push(input);
+    } else if (!loading) {
+      const index = loadingInputs.indexOf(input);
+      if (index > -1) {
+        loadingInputs.splice(index, 1);
+      }
+    }
+    this.setState({
+      ...this.state,
+      loadingInputs: [...loadingInputs],
+    });
   }
 
   @callable()
