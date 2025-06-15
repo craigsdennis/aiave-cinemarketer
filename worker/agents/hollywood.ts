@@ -155,6 +155,8 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
     Your job is to create characters based on a brief as well as choose who you think would make the best casting decision.
 
     The user is going to provide you information about the movie, and you should be as creative as possible in your decisions.
+
+    It is important to have a diverse cast and to try and typecast actors as much as possible.
     `;
 
     const info = `The movie is titled "${this.state.movieTitle}" and a brief description is as follows:
