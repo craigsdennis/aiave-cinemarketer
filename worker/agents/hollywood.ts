@@ -14,6 +14,7 @@ export const UI_ELEMENTS = [
 export type UIElement = (typeof UI_ELEMENTS)[number];
 
 export type Review = {
+  rating: number;
   text: string;
   author: string;
 };
@@ -67,6 +68,9 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
     if (!this.isLocked("posterUrl")) {
       this.setLoading("posterUrl", true);
     }
+    if (!this.isLocked("reviews")) {
+      this.setLoading("reviews", true);
+    }
 
     // Generate each element and remove from loading when complete
     if (!this.isLocked("description")) {
@@ -89,7 +93,11 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
       await this.updatePosterUrl(posterUrl);
       this.setLoading("posterUrl", false);
     }
-    // Generate reviews
+    if (!this.isLocked("reviews")) {
+      const reviews = await this.generateReviews();
+      await this.updateReviews(reviews);
+      this.setLoading("reviews", false);
+    }
   }
 
   async generateDescription() {
@@ -200,6 +208,11 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
     return parsed.cast as CastMember[];
   }
 
+  // For prompts
+  currentStateAsText() {
+
+  }
+
   async generatePosterPrompt() {
     const instructions = stripIndents`You are a Prompt Engineer.
     
@@ -248,6 +261,72 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
     const fileName = `${this.state.slug}/${crypto.randomUUID()}.jpg`;
     await this.env.MOVIE_POSTERS.put(fileName, imageResponse.body);
     return `/images/posters/${fileName}`;
+  }
+
+  async generateReviews(): Promise<Review[]> {
+    const instructions = stripIndents`You are a synthetic data generator for movie reviews.
+    
+    Your job is to create realistic sounding reviews for movies.
+
+    The user is going to provide you information about the movie, and you will create a realistic sounding Review as well as the name of the Review.
+
+    Your reviewer names and ratings should attempt to be unique.
+
+    Create three different reviews with different ratings.
+
+    Ensure the sentiment of the review is part of the rating.
+    `;
+
+    let info = `The movie is titled "${this.state.movieTitle}" and a brief description is as follows:
+    <Description>
+    ${this.state.description}
+    </Description>
+    `;
+    if (this.state.cast.length > 0) {
+      info += `\n<Starring>\n${this.state.cast.map(
+        (m) => m.actor + " as " + m.character
+      )}(", ")}\n</Starring>`;
+    }
+    if (this.state.tagline) {
+      info += `\n<Tagline>\n${this.state.tagline}\n</Tagline>`;
+    }
+
+    const ReviewSchema = z.array(
+      z.object({
+        author: z
+          .string()
+          .meta({ description: "The full name of the reviewer" }),
+        text: z
+          .string()
+          .meta({ description: "The review text that the reviewer wrote" }),
+        rating: z
+          .number()
+          .min(1)
+          .max(5)
+          .meta({ description: "The number of stars given" }),
+      })
+    );
+
+    const { response } = await this.env.AI.run(
+      "@cf/meta/llama-4-scout-17b-16e-instruct",
+      {
+        messages: [
+          { role: "system", content: instructions },
+          { role: "user", content: info },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            type: "object",
+            properties: {
+              reviews: z.toJSONSchema(ReviewSchema),
+            },
+          },
+        },
+      }
+    );
+    const parsed = JSON.parse(response);
+    return parsed.reviews as Review[];
   }
 
   isLocked(input: UIElement) {
@@ -328,5 +407,14 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
       cast,
     });
     await this.lock("cast");
+  }
+
+  @callable()
+  async updateReviews(reviews: Review[]) {
+    this.setState({
+      ...this.state,
+      reviews,
+    });
+    await this.lock("reviews");
   }
 }
