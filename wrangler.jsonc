@@ -6,7 +6,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "sim-hollywood-agent",
   "main": "worker/index.ts",
-  "compatibility_date": "2025-05-29",
+  "compatibility_date": "2025-07-05",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "not_found_handling": "single-page-application"
@@ -20,16 +20,24 @@
       {
         "class_name": "HollywoodAgent",
         "name": "HollywoodAgent"
+      },
+      {
+        "class_name": "ReporterAgent",
+        "name": "ReporterAgent"
       }
     ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["HollywoodAgent"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["HollywoodAgent", "ReporterAgent"] }
+  ],
   "r2_buckets": [
     {
       "bucket_name": "movie-posters",
+      "preview_bucket_name": "movie-posters-preview",
       "binding": "MOVIE_POSTERS"
     }
-  ]
+  ],
+  "browser": { "binding": "BROWSER" }
 
   /**
    * Smart Placement

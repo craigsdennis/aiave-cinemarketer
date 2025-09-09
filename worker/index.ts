@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
 import { agentsMiddleware } from 'hono-agents';
 import { HollywoodAgent } from './agents/hollywood';
+import { ReporterAgent } from './agents/reporter';
 
-export {HollywoodAgent};
+export {HollywoodAgent, ReporterAgent};
 
 const app = new Hono<{ Bindings: Env }>();
 

@@ -1,6 +1,6 @@
-import { Agent, unstable_callable as callable } from "agents";
+import { Agent, unstable_callable as callable, getAgentByName } from "agents";
 import { stripIndents } from "common-tags";
-import { file, z } from "zod/v4";
+import { z } from "zod/v4";
 
 export const UI_ELEMENTS = [
   "title",
@@ -101,7 +101,7 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
   }
 
   async generateDescription() {
-    const instructions = stripIndents`You are a script writer who is pitching a new movie.
+    let instructions = stripIndents`You are a script writer who is pitching a new movie.
 
     The user is going to provide you with details about the movie.
     
@@ -109,6 +109,21 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
     
     Return only the description.
     `;
+    const reporterAgent = await getAgentByName(
+      this.env.ReporterAgent,
+      "default"
+    );
+    const trends = await reporterAgent.getPopularTrends();
+    if (trends.length > 0) {
+      instructions += `Consider leaning into popular movive trends of the time listed below.
+      <PopularMovieTrends>
+      ${trends.join("\n")}
+      </PopularMovieTrends>.
+
+      Ensure to include the trend in the description, to help sell it.
+      `;
+    }
+
     let info = `<Title>\n${this.state.movieTitle}\n</Title>`;
     if (this.state.cast.length > 0) {
       info += `\n<Starring>\n${this.state.cast.map(
@@ -125,9 +140,9 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
           { role: "system", content: instructions },
           { role: "user", content: info },
         ],
+        max_tokens: 10000,
       }
     );
-    // @ts-expect-error - This is not in the type system correctly :(
     return results.response;
   }
 
@@ -153,7 +168,6 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
         ],
       }
     );
-    // @ts-expect-error - This is not in the type system correctly :(
     return results.response;
   }
 
@@ -167,14 +181,27 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
     It is important to have a diverse cast and to try and typecast actors as much as possible.
     `;
 
-    const info = `The movie is titled "${this.state.movieTitle}" and a brief description is as follows:
+    let info = `The movie is titled "${this.state.movieTitle}" and a brief description is as follows:
     <Description>
     ${this.state.description}
     </Description>
     
     Feel free to add additional characters and actors if you think it will help at the box office.
     `;
+    // Gather popular actors
+    const reporterAgent = await getAgentByName(
+      this.env.ReporterAgent,
+      "default"
+    );
+    const actors = await reporterAgent.getPopularActors();
 
+    if (actors.length > 0) {
+      info += `Here are some currently popular actors, try to choose from these where it makes sense.
+      <PopularActors>
+        ${actors.join("\n")}
+      </PopularActors>
+      `;
+    }
     const CastSchema = z.array(
       z.object({
         character: z
@@ -195,23 +222,16 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
         ],
         response_format: {
           type: "json_schema",
-          json_schema: {
-            type: "object",
-            properties: {
-              cast: z.toJSONSchema(CastSchema),
-            },
-          },
+          json_schema: z.toJSONSchema(CastSchema),
         },
       }
     );
-    const parsed = JSON.parse(response);
-    return parsed.cast as CastMember[];
+    console.log({response});
+    return response as CastMember[];
   }
 
   // For prompts
-  currentStateAsText() {
-
-  }
+  currentStateAsText() {}
 
   async generatePosterPrompt() {
     const instructions = stripIndents`You are a Prompt Engineer.
@@ -245,7 +265,6 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
         ],
       }
     );
-    // @ts-expect-error - This is not in the type system correctly :(
     const prompt = results.response;
     return prompt;
   }
@@ -253,10 +272,15 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
   async generatePoster() {
     const prompt = await this.generatePosterPrompt();
     console.log("Creating poster with prompt", prompt);
-    const response = await this.env.AI.run("@cf/black-forest-labs/flux-1-schnell", {
-      prompt
-    });
-    const imageResponse = await fetch(`data:image/jpeg;charset=utf-8;base64,${response.image}`);
+    const response = await this.env.AI.run(
+      "@cf/black-forest-labs/flux-1-schnell",
+      {
+        prompt,
+      }
+    );
+    const imageResponse = await fetch(
+      `data:image/jpeg;charset=utf-8;base64,${response.image}`
+    );
     const fileName = `${this.state.slug}/${crypto.randomUUID()}.jpg`;
     await this.env.MOVIE_POSTERS.put(fileName, imageResponse.body);
     return `/images/posters/${fileName}`;
@@ -269,7 +293,7 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
 
     The user is going to provide you information about the movie, and you will create a realistic sounding Review as well as the name of the Review.
 
-    Your reviewer names and ratings should attempt to be unique.
+    Your reviewer names and ratings should attempt to be unique, but cheekily aligned with their review style.
 
     Create three different reviews with different ratings.
 
@@ -302,7 +326,9 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
           .number()
           .min(1)
           .max(5)
-          .meta({ description: "The number of stars given. Whole numbers only" }),
+          .meta({
+            description: "The number of stars given. Whole numbers only",
+          }),
       })
     );
 
@@ -316,18 +342,12 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
         max_tokens: 10000,
         response_format: {
           type: "json_schema",
-          json_schema: {
-            type: "object",
-            properties: {
-              reviews: z.toJSONSchema(ReviewSchema),
-            },
-          },
+          json_schema: z.toJSONSchema(ReviewSchema),
         },
       }
     );
     console.log({response});
-    const parsed = JSON.parse(response);
-    return parsed.reviews as Review[];
+    return response as Review[];
   }
 
   isLocked(input: UIElement) {
