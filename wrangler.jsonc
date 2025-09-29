@@ -37,7 +37,10 @@
       "binding": "MOVIE_POSTERS"
     }
   ],
-  "browser": { "binding": "BROWSER" }
+  "browser": { "binding": "BROWSER" },
+  "routes": [
+    {"custom_domain": true, "pattern": "cinemarketer.aiavenue.show"}
+  ]
 
   /**
    * Smart Placement
