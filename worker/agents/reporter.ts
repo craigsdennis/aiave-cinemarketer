@@ -1,8 +1,8 @@
-import { Agent, unstable_callable as callable } from "agents";
-import { z } from "zod/v4";
+import { Agent, callable } from "agents";
+import { z } from "zod";
 
 const TrendsSchema = z.array(
-  z.string().meta({ description: "A concise trend" })
+  z.string().meta({ description: "The synopsis of the film" })
 );
 
 const ActorsSchema = z.array(z.string().meta({ description: "Actor's name" }));
@@ -54,13 +54,13 @@ export class ReporterAgent extends Agent<Env, ReporterState> {
 
   async extractTrends(summary: string) {
     const { response } = await this.env.AI.run(
-      "@cf/meta/llama-4-scout-17b-16e-instruct",
+      "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
       {
         messages: [
           {
             role: "system",
             content: `Your job is to find the current trends in movies.
-                    The user is going to provide you with a summary of current movies and your job is to identify current trends.
+                    The user is going to provide you with a markdown summary of current movies and your job is to identify current trends happening in the popular movies by examining the Synopsis of each movie.
                     `,
           },
           {
@@ -68,6 +68,7 @@ export class ReporterAgent extends Agent<Env, ReporterState> {
             content: summary,
           },
         ],
+        max_tokens: 5000,
         response_format: {
           type: "json_schema",
           json_schema: z.toJSONSchema(TrendsSchema),

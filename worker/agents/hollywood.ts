@@ -1,6 +1,6 @@
-import { Agent, unstable_callable as callable, getAgentByName } from "agents";
+import { Agent, callable, getAgentByName } from "agents";
 import { stripIndents } from "common-tags";
-import { z } from "zod/v4";
+import { z } from "zod";
 
 export const UI_ELEMENTS = [
   "title",
@@ -181,7 +181,7 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
     It is important to have a diverse cast and to try and typecast actors as much as possible.
     `;
 
-    let info = `The movie is titled "${this.state.movieTitle}" and a brief description is as follows:
+    let info = stripIndents`The movie is titled "${this.state.movieTitle}" and a brief description is as follows:
     <Description>
     ${this.state.description}
     </Description>
@@ -194,9 +194,8 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
       "default"
     );
     const actors = await reporterAgent.getPopularActors();
-
     if (actors.length > 0) {
-      info += `Here are some currently popular actors, try to choose from these where it makes sense.
+      info += stripIndents`Here are some currently popular actors, try to choose from these where it makes sense.
       <PopularActors>
         ${actors.join("\n")}
       </PopularActors>
@@ -206,28 +205,29 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
       z.object({
         character: z
           .string()
-          .meta({ description: "The name of the character" }),
+          .meta({ description: "The scripted name of the character in the movie" }),
         actor: z
           .string()
-          .meta({ description: "The suggested actor to play this role" }),
+          .meta({ description: "The suggested actor to play this character" }),
       })
     );
-
-    const { response } = await this.env.AI.run(
-      "@cf/meta/llama-4-scout-17b-16e-instruct",
+    const schema = z.toJSONSchema(CastSchema);
+    console.log({schema: JSON.stringify(schema)});
+    const result = await this.env.AI.run(
+      "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
       {
         messages: [
           { role: "system", content: instructions },
           { role: "user", content: info },
         ],
+        max_tokens: 20000,
         response_format: {
           type: "json_schema",
           json_schema: z.toJSONSchema(CastSchema),
         },
       }
     );
-    console.log({response});
-    return response as CastMember[];
+    return result.response as CastMember[];
   }
 
   // For prompts
@@ -322,18 +322,14 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
         text: z
           .string()
           .meta({ description: "The review text that the reviewer wrote" }),
-        rating: z
-          .number()
-          .min(1)
-          .max(5)
-          .meta({
-            description: "The number of stars given. Whole numbers only",
-          }),
+        rating: z.number().min(1).max(5).meta({
+          description: "The number of stars given. Whole numbers only",
+        }),
       })
     );
 
     const { response } = await this.env.AI.run(
-      "@cf/meta/llama-4-scout-17b-16e-instruct",
+      "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
       {
         messages: [
           { role: "system", content: instructions },
@@ -346,7 +342,7 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
         },
       }
     );
-    console.log({response});
+    console.log({ response });
     return response as Review[];
   }
 

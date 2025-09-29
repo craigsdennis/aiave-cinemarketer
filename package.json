@@ -13,16 +13,17 @@
 		"cf-typegen": "wrangler types"
 	},
 	"dependencies": {
-		"@cloudflare/puppeteer": "^1.0.3",
+		"@cloudflare/puppeteer": "^1.0.4",
 		"@tailwindcss/vite": "^4.1.8",
-		"agents": "^0.0.101",
+		"agents": "^0.2.6",
 		"common-tags": "^1.8.2",
-		"hono-agents": "^0.0.91",
-		"react": "^19.1.0",
-		"react-dom": "^19.1.0",
+		"hono-agents": "^2.0.2",
+		"react": "^19.1.1",
+		"react-dom": "^19.1.1",
+		"react-router": "^7.9.3",
 		"react-router-dom": "^7.6.1",
-		"tailwindcss": "^4.1.8",
-		"zod": "^3.25.49"
+		"tailwindcss": "^4.1.13",
+		"zod": "^4.1.11"
 	},
 	"devDependencies": {
 		"@cloudflare/playwright": "^0.0.10",
@@ -40,6 +41,6 @@
 		"typescript": "~5.8.3",
 		"typescript-eslint": "^8.30.1",
 		"vite": "^6.3.5",
-		"wrangler": "^4.28.1"
+		"wrangler": "^4.40.2"
 	}
 }
