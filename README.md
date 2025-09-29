@@ -1,10 +1,23 @@
 # CineMarketer
 
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/craigsdennis/aiave-cinemarketer)
 
-# https://editorial.rottentomatoes.com/guide/popular-movies/
+// TODO: Tutorial link here
 
-## TODO:
+Have you ever wanted to be a Hollywood Agent. Have you ever wanted to use an AI Agent. Why not feed two birds with one scone in this AI Agent based app?!
 
-YORICK: Already added a progress bar and confidence meter. Plus sliders for tone: gritty, nostalgic, intense…
-CRAIG: Huh.
-YORICK: My app doesn’t just simulate marketing. It learns from viral trends, tailors assets to audience segments, and generates A/B tests.
+🧡 Yorick the talking hand, host of [AI Avenue](https://aiavenue.show)
+
+## Develop
+
+Copy [.dev.vars.example](./.dev.vars.example) to `.dev.vars`
+
+```bash
+npm run dev
+```
+
+## Deploy
+
+```bash
+npm run deploy
+```
