@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAgent } from "agents/react";
 import { Link } from "react-router-dom";
 import type { ReporterState } from "../../worker/agents/reporter";
+import Footer from './Footer';
 
 export default function Research() {
   const [trends, setTrends] = useState<string[]>([]);
@@ -34,8 +35,9 @@ export default function Research() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
-      <div className="max-w-4xl mx-auto">
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4 pb-20">
+        <div className="max-w-4xl mx-auto">
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 shadow-2xl">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-white mb-2">
@@ -109,7 +111,9 @@ export default function Research() {
             </div>
           )}
         </div>
+        </div>
       </div>
-    </div>
+      <Footer />
+    </>
   );
 }

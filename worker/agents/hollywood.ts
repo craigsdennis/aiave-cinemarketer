@@ -10,6 +10,7 @@ export const UI_ELEMENTS = [
   "cast",
   "reviews",
   "posterUrl",
+  "grittyScale",
 ] as const;
 export type UIElement = (typeof UI_ELEMENTS)[number];
 
@@ -32,6 +33,7 @@ export type HollywoodAgentState = {
   tagline?: string;
   director?: string;
   posterUrl?: string;
+  grittyScale?: number;
   cast: CastMember[];
   reviews: Review[];
   lockedInputs: UIElement[];
@@ -56,6 +58,9 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
     this.lock("title");
 
     // Set all unlocked elements to loading at the start
+    if (!this.isLocked("grittyScale")) {
+      this.setLoading("grittyScale", true);
+    }
     if (!this.isLocked("description")) {
       this.setLoading("description", true);
     }
@@ -73,6 +78,11 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
     }
 
     // Generate each element and remove from loading when complete
+    if (!this.isLocked("grittyScale")) {
+      const grittyScale = await this.generateGrittyScale();
+      await this.updateGrittyScale(grittyScale);
+      this.setLoading("grittyScale", false);
+    }
     if (!this.isLocked("description")) {
       const description = await this.generateDescription();
       await this.updateDescription(description);
@@ -100,6 +110,41 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
     }
   }
 
+  async generateGrittyScale(): Promise<number> {
+    const instructions = stripIndents`You are a movie analyst who determines the "gritty scale" of movies.
+
+    The gritty scale ranges from 1 to 5:
+    - 1: Family-friendly, lighthearted, no violence or dark themes (Disney/Pixar style)
+    - 2: Light drama, mild themes, minimal violence (PG/PG-13 feel-good movies)
+    - 3: Moderate drama, some violence or darker themes (typical Hollywood blockbusters)
+    - 4: Dark themes, significant violence, mature content (R-rated dramas/thrillers)
+    - 5: Extremely gritty, brutal violence, very dark themes (noir, horror, ultra-violent films)
+
+    Based on the movie title provided, determine the appropriate gritty scale number (1-5).
+
+    Return ONLY the number, nothing else.`;
+
+    const result = await this.env.AI.run(
+      "@cf/meta/llama-4-scout-17b-16e-instruct",
+      {
+        messages: [
+          { role: "system", content: instructions },
+          { role: "user", content: `Movie Title: "${this.state.movieTitle}"` },
+        ],
+        max_tokens: 300,
+      }
+    );
+    console.log({result});
+    const grittyScale = parseInt(result.response);
+
+    // Validate and clamp between 1-5
+    if (isNaN(grittyScale) || grittyScale < 1 || grittyScale > 5) {
+      return 3; // Default to moderate gritty scale
+    }
+
+    return grittyScale;
+  }
+
   async generateDescription() {
     let instructions = stripIndents`You are a script writer who is pitching a new movie.
 
@@ -125,6 +170,16 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
     }
 
     let info = `<Title>\n${this.state.movieTitle}\n</Title>`;
+    if (this.state.grittyScale) {
+      const grittyDescriptions = [
+        "family-friendly and lighthearted",
+        "light drama with mild themes",
+        "moderate drama with some intensity",
+        "dark and mature with significant intensity",
+        "extremely gritty and brutal"
+      ];
+      info += `\n<GrittyScale>\n${this.state.grittyScale}/5 - Make this ${grittyDescriptions[this.state.grittyScale - 1]}\n</GrittyScale>`;
+    }
     if (this.state.cast.length > 0) {
       info += `\n<Starring>\n${this.state.cast.map(
         (m) => m.actor + " as " + m.character
@@ -235,7 +290,7 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
 
   async generatePosterPrompt() {
     const instructions = stripIndents`You are a Prompt Engineer.
-    
+
     The user is going to provide you information about a movie.
 
     Your job is to create the perfect Flux Schnell prompt that will generate a poster for their movie.
@@ -248,6 +303,16 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
     ${this.state.description}
     </Description>
     `;
+    if (this.state.grittyScale) {
+      const grittyStyles = [
+        "colorful, bright, family-friendly Disney-style poster",
+        "clean, professional, mainstream movie poster with mild drama",
+        "dramatic lighting, typical Hollywood blockbuster poster style",
+        "dark, moody, intense poster with dramatic shadows and mature themes",
+        "extremely dark, gritty, noir-style poster with harsh lighting and brutal atmosphere"
+      ];
+      info += `\n<VisualStyle>\nCreate a ${grittyStyles[this.state.grittyScale - 1]} (Gritty Scale: ${this.state.grittyScale}/5)\n</VisualStyle>`;
+    }
     if (this.state.cast.length > 0) {
       info += `\n<Starring>\n${this.state.cast.map(
         (m) => m.actor + " as " + m.character
@@ -433,5 +498,14 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
       reviews,
     });
     await this.lock("reviews");
+  }
+
+  @callable()
+  async updateGrittyScale(grittyScale: number) {
+    this.setState({
+      ...this.state,
+      grittyScale,
+    });
+    await this.lock("grittyScale");
   }
 }

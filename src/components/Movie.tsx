@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { useAgent } from 'agents/react';
 import type {HollywoodAgentState, CastMember, UIElement, Review} from '../../worker/agents/hollywood';
+import Footer from './Footer';
 
 export default function Movie() {
   const { slug } = useParams<{ slug: string }>();
@@ -10,6 +11,7 @@ export default function Movie() {
   const [description, setDescription] = useState("");
   const [tagline, setTagline] = useState("");
   const [posterUrl, setPosterUrl] = useState("");
+  const [grittyScale, setGrittyScale] = useState<number>(3);
   const [cast, setCast] = useState<CastMember[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [lockedInputs, setLockedInputs] = useState<UIElement[]>([]);
@@ -29,6 +31,9 @@ export default function Movie() {
       }
       if (state.posterUrl) {
         setPosterUrl(state.posterUrl);
+      }
+      if (state.grittyScale) {
+        setGrittyScale(state.grittyScale);
       }
       if (state.cast?.length > 0) {
         setCast(state.cast);
@@ -85,6 +90,10 @@ export default function Movie() {
     await agent.call("regenerate", [movieTitle]);
   }
 
+  const updateGrittyScale = async (newGrittyScale: number) => {
+    await agent.call("updateGrittyScale", [newGrittyScale]);
+  }
+
   const isLocked = (input: UIElement) => lockedInputs.includes(input);
   const isLoading = (input: UIElement) => loadingInputs.includes(input);
 
@@ -124,8 +133,9 @@ export default function Movie() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
-      <div className="max-w-4xl mx-auto">
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4 pb-20">
+        <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <Link 
             to="/" 
@@ -226,6 +236,86 @@ export default function Movie() {
                   </button>
                 </div>
               </form>
+            )}
+          </div>
+
+          {/* Gritty Scale Section */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-white">Gritty Scale</h3>
+              <LockIcon input="grittyScale" />
+            </div>
+
+            {isLocked("grittyScale") ? (
+              <div className="bg-white/5 rounded-lg p-6 text-blue-100">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-lg font-medium">
+                    Level {grittyScale} of 5
+                  </div>
+                  <div className="text-sm text-blue-200">
+                    {grittyScale === 1 && "Family-friendly & lighthearted"}
+                    {grittyScale === 2 && "Light drama with mild themes"}
+                    {grittyScale === 3 && "Moderate drama with some intensity"}
+                    {grittyScale === 4 && "Dark & mature with significant intensity"}
+                    {grittyScale === 5 && "Extremely gritty & brutal"}
+                  </div>
+                </div>
+                <div className="w-full bg-white/10 rounded-full h-3">
+                  <div
+                    className="bg-gradient-to-r from-green-500 via-yellow-500 to-red-600 h-3 rounded-full transition-all duration-300"
+                    style={{ width: `${(grittyScale / 5) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+            ) : isLoading("grittyScale") ? (
+              <div className="bg-white/5 rounded-lg p-6 text-blue-100 flex items-center justify-center">
+                <FilmReelSpinner />
+              </div>
+            ) : (
+              <div className="bg-white/5 rounded-lg p-6 text-blue-100">
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-lg font-medium">
+                      Level {grittyScale} of 5
+                    </div>
+                    <div className="text-sm text-blue-200">
+                      {grittyScale === 1 && "Family-friendly & lighthearted"}
+                      {grittyScale === 2 && "Light drama with mild themes"}
+                      {grittyScale === 3 && "Moderate drama with some intensity"}
+                      {grittyScale === 4 && "Dark & mature with significant intensity"}
+                      {grittyScale === 5 && "Extremely gritty & brutal"}
+                    </div>
+                  </div>
+                  <div className="w-full bg-white/10 rounded-full h-3 mb-4">
+                    <div
+                      className="bg-gradient-to-r from-green-500 via-yellow-500 to-red-600 h-3 rounded-full transition-all duration-300"
+                      style={{ width: `${(grittyScale / 5) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="5"
+                  value={grittyScale}
+                  onChange={(e) => {
+                    const newValue = parseInt(e.target.value);
+                    setGrittyScale(newValue);
+                    updateGrittyScale(newValue);
+                  }}
+                  className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+                  style={{
+                    background: `linear-gradient(to right, #10b981 0%, #eab308 25%, #f97316 50%, #ef4444 75%, #dc2626 100%)`
+                  }}
+                />
+                <div className="flex justify-between text-xs text-blue-300 mt-2">
+                  <span>Family</span>
+                  <span>Light</span>
+                  <span>Moderate</span>
+                  <span>Dark</span>
+                  <span>Brutal</span>
+                </div>
+              </div>
             )}
           </div>
 
@@ -469,6 +559,8 @@ export default function Movie() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+      <Footer />
+    </>
   );
 }
