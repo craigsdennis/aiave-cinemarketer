@@ -266,8 +266,6 @@ export class HollywoodAgent extends Agent<Env, HollywoodAgentState> {
           .meta({ description: "The suggested actor to play this character" }),
       })
     );
-    const schema = z.toJSONSchema(CastSchema);
-    console.log({schema: JSON.stringify(schema)});
     const result = await this.env.AI.run(
       "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
       {
