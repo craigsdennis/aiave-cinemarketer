@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { useAgent } from 'agents/react';
-import type {HollywoodAgentState, CastMember, UIElement, Review} from '../../worker/agents/hollywood';
+import type {HollywoodAgentState, CastMember, UIElement, Review, HollywoodAgent} from '../../worker/agents/hollywood';
 import Footer from './Footer';
 
 export default function Movie() {
@@ -18,7 +18,7 @@ export default function Movie() {
   const [loadingInputs, setLoadingInputs] = useState<UIElement[]>([]);
   const [showPosterModal, setShowPosterModal] = useState(false);
 
-  const agent = useAgent({
+  const agent = useAgent<HollywoodAgent, HollywoodAgentState>({
     agent: "hollywood-agent",
     name: slug || "default",
     onStateUpdate: (state: HollywoodAgentState) => {
@@ -50,26 +50,26 @@ export default function Movie() {
   useEffect(() => {
     const titleFromNavigation = location.state?.title;
     if (titleFromNavigation && agent) {
-      agent.call("regenerate", [titleFromNavigation]);
+      agent.stub.regenerate(titleFromNavigation as string);
     }
   }, [agent, location.state?.title]);
 
   const lockInput = async (input: UIElement) => {
-    await agent.call("lock", [input]);
+    await agent.stub.lock(input);
   }
   
   const unlockInput = async (input: UIElement) => {
-    await agent.call("unlock", [input]);
+    await agent.stub.unlock(input);
   }
   
   const submitTitle = async (form: FormData) => {
-    const movieTitle = form.get("movie_title");
-    await agent.call("regenerate", [movieTitle]);
+    const movieTitle = form.get("movie_title") as string;
+    await agent.stub.regenerate(movieTitle);
   }
 
   const saveTagline = async (form: FormData) => {
-    const taglineText = form.get("tagline");
-    await agent.call("updateTagline", [taglineText]);
+    const taglineText = form.get("tagline") as string;
+    await agent.stub.updateTagline(taglineText);
   }
 
   const addCastMember = async (form: FormData) => {
@@ -77,21 +77,21 @@ export default function Movie() {
     const actor = form.get("actor");
     if (character && actor) {
       const newCast = [...cast, { character: character.toString(), actor: actor.toString() }];
-      await agent.call("updateCast", [newCast]);
+      await agent.stub.updateCast(newCast);
     }
   }
 
   const deleteCastMember = async (index: number) => {
     const newCast = cast.filter((_, i) => i !== index);
-    await agent.call("updateCast", [newCast]);
+    await agent.stub.updateCast(newCast);
   }
 
   const regenerateAll = async () => {
-    await agent.call("regenerate", [movieTitle]);
+    await agent.stub.regenerate(movieTitle);
   }
 
   const updateGrittyScale = async (newGrittyScale: number) => {
-    await agent.call("updateGrittyScale", [newGrittyScale]);
+    await agent.stub.updateGrittyScale(newGrittyScale);
   }
 
   const isLocked = (input: UIElement) => lockedInputs.includes(input);

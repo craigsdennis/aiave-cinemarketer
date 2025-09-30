@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAgent } from "agents/react";
 import { Link } from "react-router-dom";
-import type { ReporterState } from "../../worker/agents/reporter";
+import type { ReporterAgent, ReporterState } from "../../worker/agents/reporter";
 import Footer from './Footer';
 
 export default function Research() {
@@ -9,7 +9,7 @@ export default function Research() {
   const [actors, setActors] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const agent = useAgent({
+  const agent = useAgent<ReporterAgent, ReporterState>({
     agent: "reporter-agent",
     name: "default",
     onStateUpdate: (state: ReporterState) => {
@@ -26,7 +26,7 @@ export default function Research() {
     if (!agent) return;
     setIsLoading(true);
     try {
-      await agent.call("gatherTrends", []);
+      await agent.stub.gatherTrends();
     } catch (error) {
       console.error("Error gathering trends:", error);
     } finally {
