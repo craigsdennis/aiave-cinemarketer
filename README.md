@@ -19,6 +19,14 @@ npm run dev
 
 ## Deploy
 
+Upload your secrets
+
+```
+npx wrangler secret bulk .dev.vars
+```
+
+Deploy to Region Earth!
+
 ```bash
 npm run deploy
 ```
