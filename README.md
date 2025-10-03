@@ -2,7 +2,8 @@
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/craigsdennis/aiave-cinemarketer)
 
-// TODO: Tutorial link here
+[<img src="https://img.youtube.com/vi/mb8mLXovmKA/0.jpg">](https://youtu.be/mb8mLXovmKA "Build a Movie Marketing Simulator AI Agent | AI Ave Ep 3 Tutorial
+")
 
 Have you ever wanted to be a Hollywood Agent. Have you ever wanted to use an AI Agent. Why not feed two birds with one scone in this AI Agent based app?!
 
